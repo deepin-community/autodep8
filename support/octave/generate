@@ -1,0 +1,18 @@
+#!/bin/sh
+
+set -e
+
+. $(dirname $0)/../common
+
+# Get build-dependencies (debhelper-compat, dh-octave, and dh-octave-sequence excluded)
+builddeps=$(parse_control 'Build-Depends' 'debhelper-compat dh-octave dh-octave-sequence')
+
+cat <<EOF
+Test-Command: DH_OCTAVE_TEST_ENV=${pkg_octave_test_env:-\"xvfb-run -a\"} /usr/bin/dh_octave_check --use-installed-package
+Depends: @, $builddeps dh-octave-autopkgtest (>= 0.5.6), xauth, xvfb, ${pkg_octave_extra_depends:-}
+Restrictions: allow-stderr, ${pkg_octave_extra_restrictions:-}
+EOF
+
+if [ x"${pkg_octave_architecture:-}" != x ]; then
+    echo Architecture: "${pkg_octave_architecture}"
+fi

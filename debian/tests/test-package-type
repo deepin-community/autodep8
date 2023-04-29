@@ -1,0 +1,80 @@
+#!/bin/sh
+
+set -eu
+
+pkgtype="${1}"
+pkg="${2}"
+
+autopkgtest=autopkgtest
+if ! autopkgtest --help | grep -q '[-][-]validate'; then
+  echo "W: skipping autopkgtest validation as autopkgtest does not support --validate" >&2
+  autopkgtest=:
+fi
+
+if [ -z "${AUTOPKGTEST_TMP:-}" ]; then
+  AUTOPKGTEST_TMP=$(mktemp --directory)
+  trap "rm -rf ${AUTOPKGTEST_TMP}" INT TERM EXIT
+fi
+
+run() {
+  echo '$' "$@"
+  "$@"
+}
+
+banner() {
+  char="${1}"
+  shift
+  echo
+  echo
+  echo "========================================================================" | tr = "${char}"
+  echo "$@"
+  echo "========================================================================" | tr = "${char}"
+}
+
+banner = "${pkgtype}"
+
+tmpdir="$(mktemp --directory --tmpdir="${AUTOPKGTEST_TMP}" "${pkg}.XXXXXXXXX")"
+cd "${tmpdir}"
+mkdir "${pkg}"
+cd "${pkg}"
+if [ "${pkgtype}" = python ]; then
+ binpkg="$(echo "${pkg}" | sed -e 's/python-/python3-/')"
+else
+  binpkg="${pkg}"
+fi
+mkdir debian
+cat > debian/control <<EOF
+Source: ${pkg}
+Testsuite: autopkgtest-pkg-${pkgtype}
+
+Package: ${binpkg}
+Architecture: all
+EOF
+cat > debian/changelog <<EOF
+pkg (0.0.1-1) UNRELEASED; urgency=medium
+
+  * Sample package
+
+ -- The Maintainer <maintainer@debian.org>  Mon, 27 Dec 2021 16:32:42 -0300
+EOF
+
+# basic
+banner - "${pkgtype} plain test"
+run autodep8
+run $autopkgtest --quiet --no-built-binaries --validate . -- null
+
+# with conf
+mkdir -p "debian/tests"
+printf "extra_depends=foo\n" > "debian/tests/autopkgtest-pkg-${pkgtype}.conf"
+banner - "${pkgtype} test with extra_depends=foo"
+run cat debian/tests/autopkgtest-pkg-${pkgtype}.conf
+run autodep8
+run $autopkgtest --quiet --no-built-binaries --validate . -- null
+run sh -ec 'autodep8 | grep "^Depends:.*, foo\$"'
+
+printf "extra_restrictions=foo\n" > "debian/tests/autopkgtest-pkg-${pkgtype}.conf"
+banner - "${pkgtype} test with extra_restrictions=foo"
+run cat debian/tests/autopkgtest-pkg-${pkgtype}.conf
+run autodep8
+run $autopkgtest --quiet --no-built-binaries --validate . -- null
+run sh -ec 'autodep8 | grep "^Restrictions:.*, foo\$"'
