@@ -1,0 +1,12 @@
+#!/bin/sh
+
+cat <<EOF
+Test-Command: /usr/lib/dkms/dkms-autopkgtest
+Restrictions: needs-root, breaks-testbed, allow-stderr, superficial, ${pkg_dkms_extra_restrictions:-}
+Depends: dkms, linux-doc, ${pkg_dkms_extra_depends:-}
+Features: test-name=dkms-autopkgtest
+EOF
+
+if [ x"${pkg_dkms_architecture:-}" != x ]; then
+    echo Architecture: "${pkg_dkms_architecture}"
+fi
