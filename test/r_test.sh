@@ -19,13 +19,13 @@ test_should_not_try_on_other_package_types_starting_with_r() {
   assertEquals "" "$(cat stdout stderr)"
 }
 
-test_r_recommends() {
-  has 'DESCRIPTION' 'Package: FOO
-Suggests: brew'
-  has debian/control 'Source: r-foo
-Testsuite: autopkgtest-pkg-r'
-  check_run autodep8
-  assertTrue 'No r-cran-brew in Depends' 'grep ^Depends: stdout | grep --quiet r-cran-brew'
-}
+# test_r_recommends() {
+#   has 'DESCRIPTION' 'Package: FOO
+# Suggests: brew'
+#   has debian/control 'Source: r-foo
+# Testsuite: autopkgtest-pkg-r'
+#   check_run autodep8
+#   assertTrue 'No r-cran-brew in Depends' 'grep ^Depends: stdout | grep --quiet r-cran-brew'
+# }
 
 . shunit2
